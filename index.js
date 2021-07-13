@@ -38,7 +38,9 @@ app.use('/json_placeholder', createProxyMiddleware({
     },
 }));
 
+const port = process.env.PORT || 3000;
+
 // Start Proxy
-app.listen(process.env.PORT || PORT, HOST, () => {
-    console.log(`Starting Proxy at ${HOST}:${PORT}`);
+app.listen(port, HOST, () => {
+    console.log("Starting Proxy at" + port);
 });
