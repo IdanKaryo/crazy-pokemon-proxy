@@ -1,18 +1,11 @@
 const express = require('express');
 const morgan = require("morgan");
-const http = require(‘http’);
+
 
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 // Create Express Server
 const app = express();
-
-var app = http.createServer(function(req,res) {
-  res.writeHead(200, {}); 
-  res.end(‘response’); 
-  badLoggingCall(‘sent response’); 
-  console.log(‘sent response’);
-});
 
 // Configuration
 const PORT = 3000;
