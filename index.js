@@ -1,46 +1,44 @@
-const express = require('express');
-const morgan = require("morgan");
 
+var http = require('http'),
+  url = require('url');
 
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const port = process.env.PORT || 4000;
 
-// Create Express Server
-const app = express();
+http.createServer(function(request, response) {
+  target = request.url;
 
-// Configuration
-const PORT = 3000;
-const HOST = "localhost";
-const API_SERVICE_URL = "https://jsonplaceholder.typicode.com";
+  if(target[0] == "/") // remove the leading forward slash
+    target = target.substring(1, target.length);
 
-// Logging
-app.use(morgan('dev'));
+  console.log("Request received. Target: " + target);
 
-// Info GET endpoint
-app.get('/info', (req, res, next) => {
-    res.send('This is a proxy service which proxies to JSONPlaceholder API.');
-});
+  // parse the url
+  url_parts = url.parse(target);
+  if(url_parts.host == undefined) { // stop processing, URL must contain http(s)://
+    response.write("ERROR: missing host in target URL " + target);
+    response.end();
+  }
+  else {
 
-// Authorization
-app.use('', (req, res, next) => {
-    if (req.headers.authorization) {
-        next();
-    } else {
-        res.sendStatus(403);
-    }
-});
-
-// Proxy endpoints
-app.use('/json_placeholder', createProxyMiddleware({
-    target: API_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: {
-        [`^/json_placeholder`]: '',
-    },
-}));
-
-const port = process.env.PORT || 3000;
-
-// Start Proxy
-app.listen(port, HOST, () => {
-    console.log("Starting Proxy at" + port);
-});
+    var proxy = http.createClient(80, url_parts.host)
+    var proxy_request = proxy.request(request.method, url_parts.href, request.headers);
+    
+    console.log("Creating proxy request to server: " + url_parts.hostname + ", path: " + url_parts.pathname);
+    proxy_request.addListener('response', function (proxy_response) {
+      proxy_response.addListener('data', function(chunk) {
+        response.write(chunk, 'binary');
+      });
+      proxy_response.addListener('end', function() {
+        response.end();
+      });
+      response.writeHead(proxy_response.statusCode, proxy_response.headers);
+    });
+    request.addListener('data', function(chunk) {
+      proxy_request.write(chunk, 'binary');
+    });
+    request.addListener('end', function() {
+      proxy_request.end();
+    });
+  }
+}).listen(port);
+console.log("Proxy started. Listening to port" + port);
